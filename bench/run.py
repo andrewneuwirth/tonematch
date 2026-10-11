@@ -1,12 +1,20 @@
 """Run the tone-match benchmark.
 
-    uv run python run.py                       # all matchers, 12 synthetic + 12 real cases
-    uv run python run.py --synthetic 24 --level mix --matchers default random
+    uv run python run.py                                   # baselines, 24 synthetic + 24 real cases
+    uv run python run.py --variant playalong --matchers default aligned
+    uv run python run.py --level room --matchers default random
+    uv run --group afx python run.py --matchers default cmaes_afx cmaes_afx_spec   # needs torch
+    uv run --group afx --group sep python run.py --band demucs --matchers default cmaes_afx   # full band
+    uv run --group afx python run.py --level room --calib eq --matchers default cmaes_afx      # listen mode
 
 Scores (lower is better):
 - tone_db:   multi-resolution STFT log-magnitude error on a held-out passage (the main score)
 - ltas_db:   long-term spectrum error on the same passage
+- mel_db:    log-mel distance on the same passage (cross-check: mel bands, not linear STFT bins)
 - knob_err:  mean absolute knob error, 0..1 scale (synthetic only; settings are known)
+Medians come with a 95% percentile-bootstrap interval; "vs default" is the median per-case
+difference from the default matcher on the same cases (negative = better), "wins" the share of
+cases where the matcher beats default.
 """
 
 import argparse
@@ -16,13 +24,14 @@ from pathlib import Path
 
 import numpy as np
 
-from tonebench import amp, cases, metrics
-from tonebench.matchers import MATCHERS
+from tonebench import amp, cases, metrics, stats
+from tonebench.matchers import DEFAULT_MATCHERS, MATCHERS
 
 
 def evaluate(case, est):
     y = amp.render(est, case.eval_di)
-    row = {"tone_db": metrics.mrstft_db(y, case.eval_ref), "ltas_db": metrics.ltas_db(y, case.eval_ref)}
+    row = {"tone_db": metrics.mrstft_db(y, case.eval_ref), "ltas_db": metrics.ltas_db(y, case.eval_ref),
+           "mel_db": metrics.mel_db(y, case.eval_ref)}
     if case.true is not None:
         row["knob_err"] = float(np.mean(np.abs(est.vector() - case.true.vector())))
     return row
@@ -30,16 +39,30 @@ def evaluate(case, est):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--synthetic", type=int, default=12)
+    ap.add_argument("--synthetic", type=int, default=24)
     ap.add_argument("--real", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--level", default="full", choices=["none", "mix", "full"])
-    ap.add_argument("--matchers", nargs="*", default=list(MATCHERS))
+    ap.add_argument("--real-per-take", type=int, default=2, help="cases per Guitar-TECHS excerpt (12 excerpts)")
+    ap.add_argument("--level", default="full", choices=["none", "mix", "full", "room"])
+    ap.add_argument("--variant", default="different", choices=cases.VARIANTS)
+    ap.add_argument("--band", default="none", choices=cases.BANDS,
+                    help="guitar alone, or in a full mix with oracle / Demucs separation")
+    ap.add_argument("--calib", default="none", choices=["none", "eq", "eq_denoise"],
+                    help="listen mode (--level room): clean the target with a one-time calibration first")
+    ap.add_argument("--matchers", nargs="*", default=DEFAULT_MATCHERS, choices=list(MATCHERS))
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--tag", default="")
     args = ap.parse_args()
+    if "default" not in args.matchers:
+        args.matchers = ["default"] + args.matchers  # every table is relative to default
 
     t0 = time.time()
-    all_cases = cases.synthetic(args.synthetic, args.seed, args.level) + (cases.real(args.seed) if args.real else [])
-    print(f"{len(all_cases)} cases built in {time.time() - t0:.1f}s")
+    all_cases = cases.synthetic(args.synthetic, args.seed, args.level, args.variant, args.band, args.calib)
+    if args.real:
+        all_cases += cases.real(args.seed, args.real_per_take, args.level, args.variant, args.band, args.calib)
+    if args.band in ("demucs", "solo_demucs"):
+        from tonebench import separate
+        separate.apply(all_cases)
+    print(f"{len(all_cases)} cases ({args.level}, {args.variant}, band={args.band}, calib={args.calib}) built in {time.time() - t0:.1f}s")
 
     results = []
     for name in args.matchers:
@@ -49,24 +72,17 @@ def main():
             est = fn(c.target, c.match_di, np.random.default_rng(args.seed))
             results.append({"matcher": name, "case": c.id, "track": c.track, **evaluate(c, est),
                             "est": est.as_dict(), "true": c.true.as_dict() if c.true else None})
-        print(f"  {name}: {time.time() - t1:.1f}s")
+        print(f"  {name}: {time.time() - t1:.1f}s", flush=True)
 
     print()
-    header = f"{'matcher':<15}{'track':<11}{'tone_db':>9}{'ltas_db':>9}{'knob_err':>10}   (medians, lower is better)"
-    print(header)
-    print("-" * len(header))
-    for name in args.matchers:
-        for track in ("synthetic", "real"):
-            rows = [r for r in results if r["matcher"] == name and r["track"] == track]
-            if not rows:
-                continue
-            med = lambda k: np.median([r[k] for r in rows]) if k in rows[0] else float("nan")
-            print(f"{name:<15}{track:<11}{med('tone_db'):9.2f}{med('ltas_db'):9.2f}{med('knob_err'):10.3f}")
+    rows = stats.summarize(results, args.matchers)
+    stats.print_table(rows)
 
     out = Path(__file__).parent / "results"
     out.mkdir(exist_ok=True)
-    path = out / f"run-{time.strftime('%Y%m%d-%H%M%S')}.json"
-    path.write_text(json.dumps({"args": vars(args), "results": results}, indent=1))
+    tag = f"-{args.tag}" if args.tag else ""
+    path = out / f"run-{time.strftime('%Y%m%d-%H%M%S')}{tag}.json"
+    path.write_text(json.dumps({"args": vars(args), "results": results, "summary": rows}, indent=1))
     print(f"\nsaved {path.relative_to(Path(__file__).parent)}")
 
 

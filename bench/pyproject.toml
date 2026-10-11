@@ -3,7 +3,26 @@ name = "tonebench"
 version = "0.1.0"
 description = "Benchmark for guitar tone matching: known-answer synthetic cases and real mic'd-amp cases"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "scipy>=1.11", "soundfile>=0.12"]
+dependencies = [
+    "cma>=4.5.0",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "soundfile>=0.12",
+]
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+afx = [
+    "torch>=2.14.1",
+]
+export = [
+    "coremltools>=9.0",
+]
+report = [
+    "matplotlib>=3.11.2",
+]
+sep = [
+    "demucs>=4.0.1",
+]
