@@ -1,0 +1,9 @@
+[project]
+name = "tonebench"
+version = "0.1.0"
+description = "Benchmark for guitar tone matching: known-answer synthetic cases and real mic'd-amp cases"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26", "scipy>=1.11", "soundfile>=0.12"]
+
+[tool.uv]
+package = false
