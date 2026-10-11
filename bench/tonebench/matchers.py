@@ -211,4 +211,15 @@ def pred_only(target, match_di, rng):
     return amp.AmpParams.from_vector(encoder.run([target])[1][0])
 
 
-MATCHERS.update({"cmaes_ours": cmaes_ours, "pred_then_search": pred_then_search, "pred_only": pred_only})
+def cmaes_ours_pure(target, match_di, rng):
+    """CMA-ES on our embedding distance alone (no spectral term, no prior): the ST-ITO recipe."""
+    from . import encoder
+    et = encoder.embed([target])[0]
+
+    def cost_batch(xs):
+        return list(1.0 - encoder.embed([amp.render(amp.AmpParams.from_vector(v), match_di) for v in xs]) @ et)
+
+    return amp.AmpParams.from_vector(_cmaes(cost_batch, rng))
+
+
+MATCHERS.update({"cmaes_ours_pure": cmaes_ours_pure, "cmaes_ours": cmaes_ours, "pred_then_search": pred_then_search, "pred_only": pred_only})
