@@ -21,6 +21,9 @@ vocal-like lead), runs production / room on the mix, then gives the matcher a gu
 - "demucs": the produced mix separated by Demucs htdemucs_6s (tonebench.separate; bench only).
 - "solo_demucs": no band, but the guitar-only target still goes through Demucs (separation as a
   cleanup step: does it remove listen-mode noise and room?).
+- "spleeter": the produced mix separated by Spleeter 4stems, the "other" stem (tonebench.separate).
+- "spleeter_hf": the same, with the mix passed through above 11 kHz (Spleeter's stem stops there).
+- "mix": no separation: the matcher gets the whole produced mix (what the app matches on today).
 Real cases follow their guitar-only convention: no studio production at --level full (the mic'd amp
 is just summed with the band), room() at --level room.
 
@@ -52,7 +55,8 @@ class Case:
 SEG_MATCH = 6.0
 SEG_EVAL = 6.0
 VARIANTS = ("different", "playalong", "playalong_exact")
-BANDS = ("none", "oracle", "demucs", "solo_demucs")
+BANDS = ("none", "oracle", "demucs", "solo_demucs", "spleeter", "spleeter_hf", "mix")
+SEPARATED = {"demucs": "demucs", "solo_demucs": "demucs", "spleeter": "spleeter", "spleeter_hf": "spleeter_hf"}
 
 
 def perform(src, start, n, rng, other, max_offset=0.06, max_jitter=0.025, fade=0.01):
@@ -137,6 +141,8 @@ def synthetic(n, seed=0, level="full", variant="different", band="none", calib="
         else:  # same production draws as band="none" (they come first from rng), plus the band
             target, mix, prod = _band_target(amp.render(true, seg), level, rng, np.random.default_rng([seed, i, 1]),
                                              np.random.default_rng([seed, i, 3]), calib=calib)
+            if band == "mix":
+                target = mix
         _, mdi = data.segment(data.di(b), SEG_MATCH, rng)
         _, edi = data.segment(data.di(c), SEG_EVAL, rng)
         mdi = _match_di(variant, data.di(a), s, mdi, data.di(b), np.random.default_rng([seed, i, 2]))
@@ -173,6 +179,8 @@ def real(seed=0, per_take=1, level="full", variant="different", band="none", cal
             if band not in ("none", "solo_demucs"):
                 target, mix, extra = _band_target(target, level, None, np.random.default_rng([seed, k, j, 1]),
                                                   np.random.default_rng([seed, k, j, 3]), studio=False, calib=calib)
+                if band == "mix":
+                    target = mix
                 info.update(extra)
             elif level == "room":
                 target, extra = production.room(dsp.normalize(target, -20.0), np.random.default_rng([seed, k, j, 1]),

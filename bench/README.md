@@ -40,6 +40,10 @@ Options. Targets, DIs and eval passages are the same under every option, so runs
   sometimes keys and a vocal-like lead; `tonebench/band.py`, our own synthesis), produced as a mix,
   then perfectly separated (the guitar's own share of the produced mix). `demucs` = the same mix
   separated by Demucs htdemucs_6s. `solo_demucs` = no band, but the target still goes through Demucs.
+  `spleeter` = the same mix through Spleeter 4stems, the "other" stem (run in its own env as a
+  subprocess, `spleeter_worker.py`; set `TONEBENCH_SPLEETER_DIR`, default `../.scratch/spleeter`).
+  `spleeter_hf` = that stem below 11 kHz plus the mix above it. `mix` = the same mix, unseparated
+  (the no-separation baseline for the band modes). `paired.py` compares runs case by case.
 - `--calib` (room only): `eq` = one-time calibration. The phone plays known pink noise through the same
   speaker/room/mic (with its own noise and AGC) and estimates the chain's response from that
   recording (1/6 octave, inverse clamped to +-12 dB); the target is then inverse-EQ'd. `eq_denoise` =

@@ -5,6 +5,7 @@
     uv run python run.py --level room --matchers default random
     uv run --group afx python run.py --matchers default cmaes_afx cmaes_afx_spec   # needs torch
     uv run --group afx --group sep python run.py --band demucs --matchers default cmaes_afx   # full band
+    uv run python run.py --band spleeter_hf --matchers default pred_only   # Spleeter, in its own env (separate.py)
     uv run --group afx python run.py --level room --calib eq --matchers default cmaes_afx      # listen mode
 
 Scores (lower is better):
@@ -45,7 +46,7 @@ def main():
     ap.add_argument("--level", default="full", choices=["none", "mix", "full", "room"])
     ap.add_argument("--variant", default="different", choices=cases.VARIANTS)
     ap.add_argument("--band", default="none", choices=cases.BANDS,
-                    help="guitar alone, or in a full mix with oracle / Demucs separation")
+                    help="guitar alone, or in a full mix: oracle / Demucs / Spleeter separation, or the raw mix")
     ap.add_argument("--calib", default="none", choices=["none", "eq", "eq_denoise"],
                     help="listen mode (--level room): clean the target with a one-time calibration first")
     ap.add_argument("--matchers", nargs="*", default=DEFAULT_MATCHERS, choices=list(MATCHERS))
@@ -59,9 +60,9 @@ def main():
     all_cases = cases.synthetic(args.synthetic, args.seed, args.level, args.variant, args.band, args.calib)
     if args.real:
         all_cases += cases.real(args.seed, args.real_per_take, args.level, args.variant, args.band, args.calib)
-    if args.band in ("demucs", "solo_demucs"):
+    if args.band in cases.SEPARATED:
         from tonebench import separate
-        separate.apply(all_cases)
+        separate.apply(all_cases, cases.SEPARATED[args.band])
     print(f"{len(all_cases)} cases ({args.level}, {args.variant}, band={args.band}, calib={args.calib}) built in {time.time() - t0:.1f}s")
 
     results = []
