@@ -27,8 +27,8 @@ SITUATIONS = [("full-different", "Studio record, you play something else"),
               ("room-band-demucs", "Full band through a phone mic, separated with Demucs")]
 GROUPS = {"studio": ["full-different", "full-playalong"], "phone-mic room": ["room-different", "room-playalong", "room-solo-demucs"],
           "full-band": ["full-band-demucs", "room-band-demucs"]}
-MATCHERS = ["default", "cmaes_afx", "cmaes_ours", "pred_then_search", "pred_only"]
-OURS = ["cmaes_ours", "pred_then_search"]
+MATCHERS = ["default", "cmaes_afx", "cmaes_ours", "pred_then_search", "pred_only", "cmaes_ours_pure"]
+OURS = ["cmaes_ours", "pred_then_search", "cmaes_ours_pure"]
 
 
 def closeness(db):
@@ -137,7 +137,7 @@ def charts(allres):
 
     # bar chart
     sits = [s for s, _ in SITUATIONS if s in allres]
-    colors = {"default": "#99a8b2", "cmaes_afx": "#e6a157", "cmaes_ours": "#1f6f8b", "pred_then_search": "#6a9c78"}
+    colors = {"default": "#99a8b2", "cmaes_afx": "#e6a157", "cmaes_ours": "#1f6f8b", "pred_then_search": "#6a9c78", "cmaes_ours_pure": "#7b5ea7"}
     fig, ax = plt.subplots(1, 2, figsize=(15, 4.5), sharey=True)
     for a, track in zip(ax, ("synthetic", "real")):
         w = 0.8 / len(colors)
@@ -149,7 +149,7 @@ def charts(allres):
                 meds.append(med)
                 errs[0].append(med - lo)
                 errs[1].append(hi - med)
-            a.bar(np.arange(len(sits)) + (j - 1.5) * w, meds, w, yerr=errs, color=c, label=m, capsize=2)
+            a.bar(np.arange(len(sits)) + (j - (len(colors) - 1) / 2) * w, meds, w, yerr=errs, color=c, label=m, capsize=2)
         a.set_xticks(np.arange(len(sits)), sits, rotation=20, fontsize=8)
         a.set(title=f"{track} cases: tone_db median, 95% CI (lower is better)")
         a.spines[["top", "right"]].set_visible(False)
@@ -163,7 +163,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     allres = load()
     lines, head = tables(allres)
-    hl = ["| situation | track | cmaes_ours vs cmaes_afx | pred_then_search vs cmaes_afx |", "|---|---|---|---|"]
+    hl = ["| situation | track | cmaes_ours vs cmaes_afx | pred_then_search vs cmaes_afx | cmaes_ours_pure vs cmaes_afx |", "|---|---|---|---|---|"]
     for sit, _ in SITUATIONS:
         for track in ("synthetic", "real"):
             ps = [head.get((sit, track, m)) for m in OURS]

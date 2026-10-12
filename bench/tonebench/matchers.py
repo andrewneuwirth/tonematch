@@ -222,4 +222,22 @@ def cmaes_ours_pure(target, match_di, rng):
     return amp.AmpParams.from_vector(_cmaes(cost_batch, rng))
 
 
-MATCHERS.update({"cmaes_ours_pure": cmaes_ours_pure, "cmaes_ours": cmaes_ours, "pred_then_search": pred_then_search, "pred_only": pred_only})
+def cmaes_afx_ours(target, match_di, rng):
+    """CMA-ES on AFx-Rep distance + our encoder distance, each scaled to 1 at noon (an ensemble)."""
+    from . import afxrep, encoder
+    ea, eo = afxrep.embed([target])[0], encoder.embed([target])[0]
+
+    def raw(xs):
+        ys = [amp.render(amp.AmpParams.from_vector(v), match_di) for v in xs]
+        return 1.0 - afxrep.embed(ys) @ ea, 1.0 - encoder.embed(ys) @ eo
+
+    a0, o0 = (max(float(d[0]), 1e-4) for d in raw([np.full(len(amp.KNOBS), 0.5)]))
+
+    def cost_batch(xs):
+        a, o = raw(xs)
+        return list(a / a0 + o / o0)
+
+    return amp.AmpParams.from_vector(_cmaes(cost_batch, rng))
+
+
+MATCHERS.update({"cmaes_afx_ours": cmaes_afx_ours, "cmaes_ours_pure": cmaes_ours_pure, "cmaes_ours": cmaes_ours, "pred_then_search": pred_then_search, "pred_only": pred_only})
