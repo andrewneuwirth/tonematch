@@ -104,3 +104,106 @@ refine got 24 renders (full: 26); an iPhone gets fewer renders in the 3 s budget
 
 Decision: refine helps (79/120, CI excludes 0), so Listen keeps it. The "This needs an on-device
 A/B" note above is answered for the measurable part; an ear test is still useful for Class A Chime.
+
+## Amp pick and refine (2026-10-12)
+
+Follow-up to the section above: the amp pick found the true amp in only 19 of 120 cases, and the
+refine made Class A Chime worse 13 of 13 times. Both trace back to what Listen renders and how it
+compares the renders.
+
+### Diagnosis: an oracle run
+
+`-refineeval-oracle` (same harness, seed and 120 cases) renders the prediction on **every** amp
+option (the gain ladder and the 7 cab-baked captures) and runs the refine to convergence on each, once
+with the app's pluck-synth reference (`ReferenceDI.samples()`, "synth") and once with a real guitar
+DI from the bundled preview phrases (1.5 s "Chords" + 1.5 s "Lead line", "guitar"). Each is scored on
+the held-out DI (log-mel dB). Rows: `bench/results/refineeval-20261012-seed7-oracle.jsonl` (local).
+
+Refine on each amp, held-out log-mel, prediction → refined (median), better / worse of 120:
+
+| amp option | prediction | synth refine | better / worse | guitar refine | better / worse |
+|---|---|---|---|---|---|
+| Class A Chime | 4.68 | 6.96 (+2.78) | **10 / 110** | 4.60 (+0.00) | 42 / 41 |
+| Texas Clean | 4.67 | 5.90 (+0.91) | 41 / 79 | 4.45 (-0.10) | 65 / 40 |
+| gain ladder | 6.14 | 5.30 | 76 / 44 | 4.93 | 76 / 24 |
+| Brit Crunch | 7.05 | 5.63 | 70 / 50 | 5.05 | 102 / 14 |
+| Brit Vintage | 8.13 | 5.45 | 91 / 29 | 5.47 | 115 / 4 |
+| Citrus Drive | 6.77 | 4.77 | 85 / 35 | 4.83 | 86 / 23 |
+| Lead 100 | 6.74 | 4.87 | 101 / 19 | 4.70 | 87 / 22 |
+| Modern Metal | 7.87 | 5.16 | 98 / 22 | 5.46 | 90 / 22 |
+
+**Class A Chime: the cause is the synthetic reference DI**, not the knob mapping or the capture. On
+Chime the refine always went the same way (treble down to 0-3, bass and mid up), even when Chime was
+the true amp at known settings: it was bending the knobs to make the Karplus-Strong pluck's spectrum
+look like a real guitar's. The clean cab-baked captures pass that spectrum through with the least
+compression, so they show it most (Texas Clean too, 79/120 worse). On a real guitar DI the same refine
+is neutral on Chime and helps more often on every amp. A distance-scale effect exists but is minor:
+the calibrated estimate is clamped at 0 dB, and 14 of 120 synth refines on Chime ended at 0.
+
+**Amp pick: the metric, not only the candidates.**
+- Candidates: the true option (counting the three amp-only captures as "the ladder") was among the
+  ladder + 2 style-gain neighbours in 79/120 cases. The encoder's gain reads high (8-10 for most targets,
+  true gain 1.5-8.5), so the neighbours are usually the high-gain captures.
+- Metric: across all 8 options, the encoder distance at the prediction ranks the amps only loosely
+  against the held-out sound (per-case Spearman, median 0.36 synth, 0.50 guitar). After a refine the
+  ranking is worse (0.18 / 0.15): each amp's refine fits the embedding, so refined distances are
+  closer together. So comparing at refined settings does not pick better, and widening the
+  candidates does not help the final sound (oracle, refined, held-out median: 2 neighbours 4.95, all
+  7 captures 5.27 with the synth; 4.54 vs 4.49 with the guitar DI), at 5 more renders.
+- At the encoder's prediction Class A Chime sounds closest of all amps in 52/120 cases whatever the
+  true amp is, and it is rarely a candidate. Adding it (+1 render) did not beat the plain neighbours
+  in the app run (same median, more spread).
+- Clamp: with the guitar DI, 4-37 % of options read exactly 0 dB at the prediction, so they tie and
+  the first candidate (the ladder) wins by list order. Ranking now uses the unclamped calibration line.
+- Family hint margin: not exercised (the harness passes no researched rig).
+- Headroom: picking by the held-out sound itself (oracle) would reach 3.73 dB at the prediction and
+  3.24 dB refined (median), vs 4.95 for today's pick. That best amp is the true option in 44/120
+  cases at the prediction and 64/120 refined, so pick accuracy is only loosely tied to the goal.
+
+### What changed (`ToneMatcher.swift`)
+
+1. Listen's amp pick and refine render a real guitar DI, `ReferenceDI.guitar()` (the bundled
+   preview phrases, synth fallback). The score, its noon baseline and re-scores still render the synth
+   (`ReferenceDI.samples()`, through `scoreReference`): one more render per match. The file path is
+   unchanged (synth, CMA-ES; not measured here).
+2. The pick and the refine compare the unclamped calibrated distance (`rankDB`,
+   `ToneEncoderRunner.calibratedDB`); everything shown stays clamped at 0.
+3. The refine times a step by the recent real renders (the seed is cached by the pick, so the old
+   per-step estimate was ~0) and leaves room for the score's render.
+4. Candidates unchanged (ladder + 2 neighbours by gain): wider sets cost renders and didn't pay.
+
+### Before / after (app path, 3 s budget)
+
+Same harness, seed 7, 120 cases; before (main) and after run side by side on the same Mac (Debug,
+under the same background load). Held-out log-mel dB, median; paired after minus before, bootstrap
+95 % CI (negative = after closer):
+
+| cases | before | after | paired median | after better / worse |
+|---|---|---|---|---|
+| all 120, app | 5.04 | 4.90 | **-0.22 [-0.40, +0.00]** (mean -0.36) | 69 / 45 |
+| clean 60, app | 5.05 | 5.07 | -0.03 [-0.56, +0.25] | 30 / 25 |
+| room 60, app | 4.99 | 4.88 | **-0.27 [-0.52, -0.07]** | 39 / 20 |
+| all 120, full (no deadline) | 5.00 | 4.38 | **-0.63 [-0.98, -0.36]** | 84 / 36 |
+| room 60, full | 5.15 | 4.67 | -0.66 [-1.01, -0.31] | 44 / 16 |
+
+- Refine vs prediction (app): better / worse 82 / 38 before, **93 / 23** after. When Class A Chime is
+  picked: 0 / 13 before (section above), 5 / 2 after (-0.08 dB). On the gain ladder: 65 / 18, -0.41
+  dB (was a wash).
+- Pick: true amp 19 → 22 of 120; the ladder is picked 87 times (was ~45).
+- Timing (Mac Debug, under load): match 3.30 s → **3.19 s** median (p90 3.63 → 3.51 s). Neither
+  ends inside 3 s: the noon baseline render runs after the deadline in both, as before.
+- Renders per match: amp pick 3 (ladder + 2, unchanged), refine median 23 → 9, score +1 (new),
+  baseline 1. The refine count falls because the ladder is picked more and its amp-only captures
+  render ~2.5x slower than the cab-baked ones (refine renders on the ladder: 10 → 8; on a
+  cab-baked capture: 26 → 26). An iPhone fits fewer renders; the change adds one per match.
+- **The shown estimate moves.** Scored on the synth after searching on the guitar DI, the score no
+  longer grades the knobs on the DI they were tuned on: median estimate 0.90 → 2.08 dB (score 86 →
+  71), verdicts close / near / rough 94 / 13 / 13 → 57 / 21 / 42, while the measured sound got closer.
+  Scoring on the guitar DI instead would read 0 dB (score 99) for most matches. Either way the
+  estimate's link to the measured sound is loose (see the Spearman numbers); worth a look before
+  release.
+
+Rows: `bench/results/refineeval-20261012-seed7-amppick-before.jsonl`,
+`refineeval-20261012-seed7-amppick-after.jsonl` (local). Re-run the oracle with
+`-refineeval-oracle` (add `-refineeval-shard k/n` and `-refineeval-conditions clean|room` to split it
+over processes; ~1 h on 8).
