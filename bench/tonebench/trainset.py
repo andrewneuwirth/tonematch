@@ -1,4 +1,4 @@
-"""Training split for the tone encoder: Guitar-TECHS DI (+ time-aligned mic'd amp) outside P3_music.
+"""Training split for the tone encoder: Guitar-TECHS DI (+ time-aligned mic'd amp) outside P3_music, plus GuitarSet DI.
 
 P3_music is the benchmark (tonebench.cases uses every one of its takes), so it is never used for
 training. Every other Guitar-TECHS folder that is present under data/guitar-techs/ goes into the
@@ -44,6 +44,12 @@ def _files():
                 continue
             m = d.parent / "micamp" / f.name.replace("directinput_", "micamp_")
             out.append((folder, f, m if m.exists() else None))
+    # GuitarSet (CC BY 4.0): hexaphonic-pickup recordings mixed to mono, i.e. clean DI from a
+    # different player, guitar and pickup than Guitar-TECHS. No mic'd amp: DI-only entries.
+    gs = data.DATA.parent / "guitarset" / "pickup_mix"
+    for f in sorted(gs.rglob("*.wav")) if gs.exists() else []:
+        if not f.name.startswith("._"):
+            out.append(("GuitarSet", f, None))
     return out
 
 
