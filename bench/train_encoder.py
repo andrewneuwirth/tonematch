@@ -186,7 +186,13 @@ def main():
     ap.add_argument("--ckpt-min", type=float, default=30.0)
     ap.add_argument("--patience", type=int, default=4, help="checkpoints without proxy improvement before stopping")
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--p-band", type=float, default=0.4, help="share of targets with a backing band")
+    ap.add_argument("--p-raw-mix", type=float, default=0.0,
+                    help="share of band targets left as the raw mix (no separation), as the app hears them")
     args = ap.parse_args()
+    os.environ["TONEBENCH_P_BAND"] = str(args.p_band)  # read by augment in every data worker
+    os.environ["TONEBENCH_P_RAW_MIX"] = str(args.p_raw_mix)
+    augment.P_BAND, augment.P_RAW_MIX = args.p_band, args.p_raw_mix
     torch.set_num_threads(4)
     OUT.mkdir(parents=True, exist_ok=True)
     dev = "mps" if torch.backends.mps.is_available() else "cpu"

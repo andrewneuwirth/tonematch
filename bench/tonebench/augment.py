@@ -135,11 +135,19 @@ def pseudo_separate(mix, g, rng):
     return y
 
 
+# Run 3: how often a target has a band, and how often a band target stays the raw mix (what
+# Listen and file matches actually hear: the app does not separate). Run 2 always separated.
+# Set from train_encoder.py's --p-band / --p-raw-mix through the environment (data workers are
+# separate processes).
+P_BAND = float(os.environ.get("TONEBENCH_P_BAND", "0.4"))
+P_RAW_MIX = float(os.environ.get("TONEBENCH_P_RAW_MIX", "0.0"))
+
+
 def degrade(x, rng, bank, cfg=None):
     """Random target degradation. Returns (signal at -20 dB, info dict)."""
     cfg = cfg or {}
     level = cfg.get("level") or rng.choice(["none", "mix", "full"], p=[0.2, 0.3, 0.5])
-    use_band = cfg.get("band", rng.random() < 0.4)
+    use_band = cfg.get("band", rng.random() < P_BAND)
     use_room = cfg.get("room", rng.random() < 0.35)
     info = {"level": str(level), "band": bool(use_band), "room": bool(use_room)}
     g = dsp.normalize(x, -20.0)
@@ -152,9 +160,11 @@ def degrade(x, rng, bank, cfg=None):
         if use_room:
             calib = "eq" if rng.random() < 0.2 else "none"
             mix, (g2,), _ = production.room_stems(mix, [g2], rng, calib)
-        oracle = rng.random() < 0.25
-        y = g2 if oracle else pseudo_separate(mix, g2, rng)
+        raw = rng.random() < cfg.get("raw_mix", P_RAW_MIX)
+        oracle = not raw and rng.random() < 0.25
+        y = mix if raw else (g2 if oracle else pseudo_separate(mix, g2, rng))
         info["oracle"] = bool(oracle)
+        info["raw_mix"] = bool(raw)
     else:
         y, _, _ = produce_stems(g, [], rng, level)
         if use_room:
