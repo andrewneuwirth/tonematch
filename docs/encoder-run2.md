@@ -21,7 +21,7 @@ Clean recordings (full/different, the Use a file case), run 1 → run 2: pred_th
 still helps a little (1.56 vs 1.63), so the file path's CMA-ES search stays.
 
 Run 2 wins most cells, by the most on the knob prediction (pred_only). It ships as
-`app/GtrTone/ToneMatch/ToneEncoder.mlpackage`. Run 1's weights stay in `models/encoder-run1-backup/`.
+`app/ToneHub/ToneMatch/ToneEncoder.mlpackage`. Run 1's weights stay in `models/encoder-run1-backup/`.
 
 Note: with run 2, the search after the prediction makes the bench worse in most cases (paired, per
 case: search better in only 7/24 real room cases and 4/24 real separated-band cases; median +0.08 and
@@ -40,8 +40,8 @@ The question above, answered in the app's own domain: does Listen's greedy ±1-s
 (`ToneMatchScorer.refine`) after the run 2 prediction make the result better or worse on ToneHub's
 NAM captures? **Better, on average. Refine stays.**
 
-Harness: `app/GtrTone/ToneMatch/RefineEval.swift` (DEBUG only, headless: the Mac binary run with
-`-refineeval` exits from `GtrToneApp.init` before any window). It uses the app's own code: the NAM
+Harness: `app/ToneHub/ToneMatch/RefineEval.swift` (DEBUG only, headless: the Mac binary run with
+`-refineeval` exits from `ToneHubApp.init` before any window). It uses the app's own code: the NAM
 core, `ToneHubRenderer`, Core ML `ToneEncoderRunner`, `ToneMatchScorer`, `matchListen`.
 
 - Targets with known answers: Guitar-TECHS `P3_music` DI (12 files, held out of encoder training),
