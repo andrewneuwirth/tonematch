@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+.venv/
+*.wav
+/data/
+/.scratch/
+bench/results/
+# training artifacts other than the released checkpoint
+bench/models/encoder/ckpt-*.pt
+bench/models/encoder/latest.pt
+bench/models/encoder/val.pt
+bench/models/encoder/selection.csv

@@ -4,7 +4,7 @@ Model code adapted from github.com/csteinmetz1/st-ito, st_ito/models/panns.py (A
 itself adapts PANNs Cnn14 (github.com/qiuqiangkong/audioset_tagging_cnn, MIT). The torchlibrosa
 front end is replaced by the same computation in plain torch, using the STFT and mel matrices
 stored in the checkpoint. Weights: huggingface.co/csteinmetz1/afx-rep (Apache-2.0), see
-docs/LICENSES.md. Expects data/models/afx-rep/afx-rep-encoder.pt (encoder-only state dict cut
+NOTICE. Expects data/models/afx-rep/afx-rep-encoder.pt (encoder-only state dict cut
 from afx-rep.ckpt; see README).
 
 Only the mono path is used: a mono input gives the 512-dim "mid" embedding.

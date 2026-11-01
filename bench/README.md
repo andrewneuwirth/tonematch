@@ -13,7 +13,7 @@ uv run python report.py --mel results/run-*.json                                
 ```
 
 Needs Guitar-TECHS `P3_music` in `../data/guitar-techs/` and the AFx-Rep encoder in
-`../data/models/afx-rep/` (see `docs/LICENSES.md`). The `sep` group (Demucs) is bench-only: its
+`../data/models/afx-rep/` (see `NOTICE`). The `sep` group (Demucs) is bench-only: its
 weights are for research/personal use and must never ship. Memory: run one benchmark at a time
 (torch is capped at 4 threads; an AFx-Rep run takes about 4 GB).
 

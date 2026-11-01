@@ -1,13 +1,13 @@
 """Guitar separation for full-band cases: Demucs htdemucs_6s (github.com/adefossez/demucs) or Spleeter.
 
 BENCH ONLY. The Demucs code is MIT, but the author says the pretrained weights are for research /
-personal use (trained on non-commercial MUSDB); see docs/LICENSES.md. Never ship them. Needs the
+personal use (trained on non-commercial MUSDB); see NOTICE. Never ship them. Needs the
 `sep` dependency group: `uv run --group afx --group sep python run.py --band demucs ...`.
 
 Results are cached in data/cache/sep/ keyed by a hash of the mix, so a run only separates once.
 The model is loaded on CPU with 4 threads and freed before matching starts.
 
-Spleeter (github.com/deezer/spleeter, code and 4stems weights MIT; docs/review/guitar-isolation.md):
+Spleeter (github.com/deezer/spleeter, code and 4stems weights MIT):
 the 4stems "other" stem. Spleeter pins TF 2.12 and old numpy, so it runs in its own env as a
 subprocess (bench/spleeter_worker.py); the bench env stays clean. Env: TONEBENCH_SPLEETER_DIR
 (default <repo>/.scratch/spleeter) holds sp-env/ and pretrained_models/4stems. Cached like Demucs.

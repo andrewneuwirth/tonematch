@@ -5,8 +5,8 @@
 Reads every <key>.npy in in_dir (mono float32 at 44.1 kHz), writes <key>.npy to out_dir: the
 "other" stem, mono (mean of the two channels), same length. Spleeter's TF / numpy pins conflict
 with the bench env, so tonebench.separate calls this as a subprocess with MODEL_PATH set to the
-folder holding pretrained_models/4stems (Deezer release v1.4.0, MIT; see
-docs/review/guitar-isolation.md). Default 4stems config: mask_extension "zeros", so the stem has
+folder holding pretrained_models/4stems (Deezer release v1.4.0, MIT).
+The default 4stems config: mask_extension "zeros", so the stem has
 no content above 11 kHz.
 """
 

@@ -1,6 +1,6 @@
 """Toy sketch: express a gear-neutral tone-stack curve as knob positions on a specific device.
 
-Design doc: docs/design/gear-aware-output.md. numpy only, runs in well under a second.
+numpy only, runs in well under a second.
 
 What it shows
 1. A device profile = knob list (names, dial range, taper) + a gray-box model mapping knob

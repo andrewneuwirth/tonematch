@@ -1,0 +1,36 @@
+ToneMatch
+Copyright 2026 Andrew Neuwirth
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project includes or uses the following third-party work:
+
+- st-ito (github.com/csteinmetz1/st-ito), Copyright Christian J. Steinmetz.
+  Apache License 2.0. The Cnn14 encoder definition in st_ito/models/panns.py is
+  adapted in bench/tonebench/afxrep.py.
+
+- AFx-Rep weights (huggingface.co/csteinmetz1/afx-rep). Apache License 2.0.
+  Not included; downloaded separately for the cmaes_afx benchmark matchers.
+
+- Guitar-TECHS dataset (zenodo.org/records/14963133). CC BY 4.0.
+  Hegel Emmanuel Pedroza Villalobos, Termeh Taheri, Wallace Abreu, Ryan Corey,
+  Iran R. Roman. "Guitar-TECHS: An Electric Guitar Dataset Covering Techniques,
+  Musical Excerpts, Chords and Scales Using a Diverse Array of Hardware."
+  Used to train the released tone encoder and as the benchmark's test audio.
+  The audio is not included.
+
+- GuitarSet (zenodo.org/records/3371780). CC BY 4.0.
+  Xi, Bittner, Pauwels, Ye, Bello. "GuitarSet: A Dataset for Guitar
+  Transcription", ISMIR 2018. Used as extra training audio for the released
+  tone encoder. The audio is not included.
+
+- Demucs (github.com/facebookresearch/demucs), code MIT. Optional, benchmark
+  only. Its pretrained weights are for research/personal use per the author and
+  are never included or redistributed here.
+
+- Spleeter (github.com/deezer/spleeter), code and 4stems weights MIT. Optional,
+  benchmark only, run in a separate environment. Not included.
+
+The released encoder weights (bench/models/encoder/best.pt and
+ToneEncoder.mlpackage) were trained on Guitar-TECHS and GuitarSet. If you use
+them, credit those datasets as above.
