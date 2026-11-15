@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/images/icon.png" width="128" height="128" alt="ToneMatch icon">
-
 # ToneMatch
 
 **Match a guitar tone from a song's real audio.**
